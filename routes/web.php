@@ -11,5 +11,6 @@ Route::get('/test', function() {
     return response()->json(['test' => 'works']);
 });
 
-Route::get('/token/{token}/{permission?}', [AccessTokenController::class, 'checkPermission'])
-    ->defaults('permission', 'read');
+Route::get('/token/{token}/{permission?}', AccessTokenController::class)
+    ->defaults('permission', 'read')
+    ->name('tokens.check');

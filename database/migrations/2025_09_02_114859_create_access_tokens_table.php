@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('access_tokens', function (Blueprint $table) {
             $table->id();
-            $table->string('token', 64);
-            $table->text('permissions');
+            $table->string('token', 64)->unique();
+            $table->json('permissions');
         });
     }
 

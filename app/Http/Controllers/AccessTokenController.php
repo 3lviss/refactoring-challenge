@@ -1,50 +1,32 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Repositories\AccessTokenRepository;
-use App\Services\Permissions;
+use App\DataObjects\AccessTokenData;
+use App\Services\TokenPermissionService;
+use App\Contracts\AccessTokenRepositoryInterface;
+use App\Http\Requests\AccessTokenRequest;
 use Illuminate\Http\Request;
 
 class AccessTokenController extends Controller
 {
-    public function checkPermission(Request $request, $token, $permission)
-    {
-        try {
-            $token = urldecode($token);
-            $permission = urldecode($permission);
+    public function __invoke(
+        AccessTokenRequest $request, 
+        TokenPermissionService $service, 
+        AccessTokenRepositoryInterface $repository
+    ) {
+        $accessTokenData = $repository->findByToken($request->token);
 
-            $repository = new AccessTokenRepository();
-            $tokenData = $repository->findByToken($token);
+        abort_if($accessTokenData === null, 404, 'Access token not found');
 
-            if (!$tokenData) {
-                return response()->json(['has_permission' => false, 'error' => 'Invalid token']);
-            }
+        $result = $service->hasPermission($accessTokenData->permissions, $request->input('permission'));
 
-            $permissions = Permissions::fromString($tokenData->permissions);
-            $hasPermission = $this->validate($permission, $permissions);
-
-            return response()->json(['has_permission' => $hasPermission]);
-
-        } catch (\Exception $e) {
-            return response()->json(['has_permission' => false, 'error' => 'Database error: ' . $e->getMessage()]);
-        }
-    }
-
-    private function validate($requested, $tokenPermissions)
-    {
-        if ($tokenPermissions instanceof Permissions) {
-            $permissionsArray = $tokenPermissions->toArray();
-
-            if (in_array($requested, $permissionsArray) || in_array('all', $permissionsArray)) {
-                return true;
-            }
-
-            if ($requested == 'all') {
-                return count($permissionsArray) > 0;
-            }
-        }
-
-        return false;
+        return response()->json([
+            'data' => [
+                'has_permission' => $result->hasPermission,
+                'permission'     => $result->permission,
+            ]
+        ], 200);
     }
 }

@@ -3,75 +3,59 @@
 namespace Tests\Feature;
 
 use Tests\TestCase;
-use App\Services\Permissions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Database\Seeders\AccessTokenSeeder;
 
 class AccessTokenControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_read_access()
+    protected function setUp(): void
     {
-        // Arrange
-        DB::table('access_tokens')->insert([
-            'token' => 'test-token-123',
-            'permissions' => Permissions::serialize(Permissions::create(['read', 'write']))
-        ]);
-
-        // Act
-        $response = $this->get('/token/test-token-123/read');
-
-        // Assert
-        $response->assertStatus(200);
-        $response->assertJson(['has_permission' => true]);
+        parent::setUp();
+        // Seed: test-token-01 ['read'], test-token-02 ['write','read'], test-token-03 [], test-token-04 ['all']
+        $this->seed(AccessTokenSeeder::class);
     }
 
-    public function test_has_all_permission()
+    public function test_read_access_granted_when_token_has_read(): void
     {
-        // Arrange
-        DB::table('access_tokens')->insert([
-            'token' => 'admin-token-456',
-            'permissions' => Permissions::serialize(Permissions::create(['all']))
-        ]);
-
-        // Act
-        $response = $this->get('/token/admin-token-456/delete');
-
-        // Assert
-        $response->assertStatus(200);
-        $response->assertJson(['has_permission' => true]);
+        $this->get('/token/test-token-01/read')
+            ->assertOk()
+            ->assertJsonPath('data.has_permission', true)
+            ->assertJsonPath('data.permission', 'read');
     }
 
-    public function test_user_requesting_all_permission_succeeds_when_token_has_any_permissions()
+    public function test_write_access_denied_when_token_is_read_only(): void
     {
-        // Arrange
-        DB::table('access_tokens')->insert([
-            'token' => 'limited-token-789',
-            'permissions' => Permissions::serialize(Permissions::create(['read']))
-        ]);
-
-        // Act
-        $response = $this->get('/token/limited-token-789/all');
-
-        // Assert
-        $response->assertStatus(200);
-        $response->assertJson(['has_permission' => true]);
+        $this->get('/token/test-token-01/write')
+            ->assertOk()
+            ->assertJsonPath('data.has_permission', false)
+            ->assertJsonPath('data.permission', null);
     }
 
-    public function test_user_cannot_access_permission_when_token_lacks_required_permission()
+    public function test_requesting_all_is_true_only_when_token_has_all(): void
     {
-        // Arrange
-        DB::table('access_tokens')->insert([
-            'token' => 'readonly-token-999',
-            'permissions' => Permissions::serialize(Permissions::create(['read']))
-        ]);
+        $this->get('/token/test-token-04/all')
+            ->assertOk()
+            ->assertJsonPath('data.has_permission', true)
+            ->assertJsonPath('data.permission', 'all');
+    }
 
-        // Act
-        $response = $this->get('/token/readonly-token-999/write');
+    public function test_invalid_permission_returns_422_with_errors(): void
+    {
+        $this->get('/token/test-token-02/delete')
+            ->assertStatus(422)
+            ->assertJsonStructure([
+                'message',
+                'errors' => ['permission'],
+            ]);
+    }
 
-        // Assert
-        $response->assertStatus(200);
-        $response->assertJson(['has_permission' => false]);
+    public function test_missing_token_returns_404_json(): void
+    {
+        $this->get('/token/does-not-exist/read')
+            ->assertStatus(404)
+            ->assertJson(['message' => 'Access token not found']);
     }
 }
