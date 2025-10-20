@@ -1,26 +1,26 @@
-> [!CAUTION]
-> Do not fork this repository (as others might see your results then)
+[![Tests](https://github.com/3lviss/refactoring-challenge/actions/workflows/tests.yml/badge.svg)](https://github.com/3lviss/refactoring-challenge/actions/workflows/tests.yml)
 
+# Improved
 
-[![Tests](https://github.com/knowledgehero/refactoring-challenge/actions/workflows/tests.yml/badge.svg)](https://github.com/knowledgehero/refactoring-challenge/actions/workflows/tests.yml)
+* Request: input prep + validation.
 
-# Process
+* Controller: orchestration only (no business logic/persistence)
 
-1. [x] Get to know meeting (~45min)
-2. [ ] Coding challenge (you are here)
-3. [ ] Presentation and Q&A (~1h)
-4. [ ] Get to know the team (remote)
-5. [ ] Contract / Details
+* Service encapsulates permission rules.
 
-# Time
+* Repository (interface) abstracts persistence concerns.
 
-Take as long as you need, 1–3 hours should be enough.
-Hand in your solution afterwards (Share a link and share some reasoning to your changes, e.g. comments / clear commit messages).
+* DTOs.
 
-# Refactoring Task
+* Centralized JSON error handling (404/422)
 
-This Dummy-Project has one Controller. That action should be refactored.
-The goal is to improve the code quality & application architecture in the long run.
+# Potential next steps 
+
+* Move permissions into sepatrate entity 
+
+* Add Eloquent AccessToken model 
+
+* Add caching for permissions per token
 
 # Installation
 ```shell
